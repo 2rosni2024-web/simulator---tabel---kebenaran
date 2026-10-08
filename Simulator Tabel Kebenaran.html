@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulator Tabel Kebenaran</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f6fa;--panel:#ffffff;--ink:#14213d;--muted:#5b6b85;--line:#d6dee9;--accent:#1f4fd8;--accent-ink:#fff;
+--t-bg:#dff5ea;--t-ink:#0b6b3f;--f-bg:#fbe4e4;--f-ink:#a12a2a;--final:#eef3ff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1522;--panel:#161f31;--ink:#e6ecf7;--muted:#92a1bd;--line:#2a3750;--accent:#6c8dff;--accent-ink:#0e1522;--t-bg:#12372a;--t-ink:#6fe0a5;--f-bg:#3d1c20;--f-ink:#ff9a9a;--final:#1c2848}}
+:root[data-theme="dark"]{--bg:#0e1522;--panel:#161f31;--ink:#e6ecf7;--muted:#92a1bd;--line:#2a3750;--accent:#6c8dff;--accent-ink:#0e1522;--t-bg:#12372a;--t-ink:#6fe0a5;--f-bg:#3d1c20;--f-ink:#ff9a9a;--final:#1c2848}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.5}
+main{max-width:920px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:1.7rem;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 22px;max-width:60ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+label{font-weight:600;font-size:.9rem}
+#expr{width:100%;margin-top:8px;padding:14px;font:600 1.15rem 'JetBrains Mono',ui-monospace,Menlo,monospace;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:10px}
+#expr:focus{outline:none;border-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+button,select{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible,#expr:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.op{font:600 1.05rem 'JetBrains Mono',monospace;min-width:44px}
+.ex{font:400 .85rem 'JetBrains Mono',monospace}
+.hint{color:var(--muted);font-size:.82rem;margin-top:10px}
+#msg{color:var(--f-ink);background:var(--f-bg);padding:10px 12px;border-radius:8px;margin-bottom:16px;display:none}
+#verdict{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.badge{font-weight:700;padding:6px 12px;border-radius:999px;background:var(--final);color:var(--accent)}
+.badge.t{background:var(--t-bg);color:var(--t-ink)}.badge.f{background:var(--f-bg);color:var(--f-ink)}
+.stat{color:var(--muted);font-size:.9rem}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.95rem}
+th,td{padding:9px 14px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--bg);font-weight:600;position:sticky;top:0}
+th.var{color:var(--accent)}
+th.fin,td.fin{border-left:2px solid var(--accent)}
+td.T{background:var(--t-bg);color:var(--t-ink);font-weight:600}
+td.F{background:var(--f-bg);color:var(--f-ink);font-weight:600}
+td.var.T,td.var.F{background:transparent;color:var(--ink);font-weight:400}
+tr:last-child td{border-bottom:none}
+tr.hl td{box-shadow:inset 0 0 0 9999px rgba(31,79,216,.07)}
+</style>
+</head>
+<body>
+<main>
+<h1>Simulator Tabel Kebenaran</h1>
+<p class="sub">Ketik ekspresi logika, tabelnya langsung muncul lengkap dengan kolom tiap langkah dan jenis ekspresinya.</p>
+
+<div class="panel">
+  <label for="expr">Ekspresi logika</label>
+  <input id="expr" type="text" value="(p → q) ∧ (q → r) → (p → r)" autocomplete="off" spellcheck="false" inputmode="text">
+  <div class="row" id="ops"></div>
+  <div class="hint">Bisa juga diketik: <b>and</b>/<b>&amp;</b>, <b>or</b>/<b>|</b>, <b>not</b>/<b>~</b>/<b>!</b>, <b>xor</b>, <b>-&gt;</b>, <b>&lt;-&gt;</b>. Variabel berupa huruf atau kata (p, q, hujan). Maksimal 8 variabel. Urutan prioritas: ¬, ∧, ⊕, ∨, →, ↔.</div>
+  <div class="row" id="examples"></div>
+</div>
+
+<div id="msg" role="alert"></div>
+
+<div class="panel" id="result" hidden>
+  <div id="verdict"></div>
+  <div class="row" style="margin:0 0 12px">
+    <label for="fmt">Tampilan nilai</label>
+    <select id="fmt"><option value="BS">B / S</option><option value="TF">T / F</option><option value="01">1 / 0</option></select>
+  </div>
+  <div class="scroll"><table id="tbl"></table></div>
+</div>
+</main>
+
+<script>
+(function(){
+  var OPS=[['¬','¬'],['∧','∧'],['∨','∨'],['⊕','⊕'],['→','→'],['↔','↔'],['(','('],[')',')']];
+  var EXAMPLES=['(p → q) ∧ (q → r) → (p → r)','¬(p ∧ q) ↔ (¬p ∨ ¬q)','p ⊕ q','(p ∨ q) ∧ ¬p','p ∧ ¬p','p ∨ ¬p'];
+  var input=document.getElementById('expr'),msg=document.getElementById('msg'),res=document.getElementById('result'),
+      tbl=document.getElementById('tbl'),verdict=document.getElementById('verdict'),fmt=document.getElementById('fmt');
+
+  function tokenize(s){
+    var out=[],i=0,m;
+    while(i<s.length){
+      var r=s.slice(i);
+      if(/^\s/.test(r)){i++;continue}
+      if(m=r.match(/^(<->|<=>|↔|⇔)/)) out.push({k:'iff'});
+      else if(m=r.match(/^(->|=>|→|⇒)/)) out.push({k:'imp'});
+      else if(m=r.match(/^(⊕|\^)/)) out.push({k:'xor'});
+      else if(m=r.match(/^(∧|&&|&)/)) out.push({k:'and'});
+      else if(m=r.match(/^(∨|\|\||\|)/)) out.push({k:'or'});
+      else if(m=r.match(/^(¬|~|!)/)) out.push({k:'not'});
+      else if(m=r.match(/^\(/)) out.push({k:'('});
+      else if(m=r.match(/^\)/)) out.push({k:')'});
+      else if(m=r.match(/^[A-Za-z_][A-Za-z0-9_]*/)){
+        var w=m[0],lw=w.toLowerCase();
+        var kw={and:'and',dan:'and',or:'or',atau:'or',not:'not',tidak:'not',xor:'xor',implies:'imp',iff:'iff'}[lw];
+        out.push(kw?{k:kw}:{k:'var',n:w});
+      } else throw new Error('Karakter "'+r[0]+'" tidak dikenali.');
+      i+=m[0].length;
+    }
+    return out;
+  }
+
+  function parse(tokens){
+    var p=0;
+    function peek(){return tokens[p]&&tokens[p].k}
+    function eat(k){if(peek()!==k)throw new Error(k===')'?'Tanda kurung belum ditutup.':'Ekspresi tidak lengkap.');return tokens[p++]}
+    function left(next,kind){
+      return function(){var a=next();while(peek()===kind){p++;a={t:'bin',op:kind,a:a,b:next()}}return a}
+    }
+    function unary(){
+      if(peek()==='not'){p++;return {t:'not',a:unary()}}
+      if(peek()==='('){p++;var e=iff();eat(')');return e}
+      if(peek()==='var'){return {t:'var',n:tokens[p++].n}}
+      throw new Error(p>=tokens.length?'Ekspresi berakhir terlalu cepat, ada operand yang kurang.':'Posisi operator tidak tepat.');
+    }
+    var and=left(unary,'and'),xor=left(and,'xor'),or=left(xor,'or');
+    function imp(){var a=or();if(peek()==='imp'){p++;return {t:'bin',op:'imp',a:a,b:imp()}}return a}
+    var iff=left(imp,'iff');
+    var tree=iff();
+    if(p<tokens.length) throw new Error(peek()===')'?'Ada tanda kurung tutup yang berlebih.':'Operator hilang di antara dua operand.');
+    return tree;
+  }
+
+  var SYM={and:'∧',or:'∨',xor:'⊕',imp:'→',iff:'↔'};
+  function str(n,top){
+    if(n.t==='var')return n.n;
+    if(n.t==='not')return '¬'+str(n.a,false);
+    var s=str(n.a,false)+' '+SYM[n.op]+' '+str(n.b,false);
+    return top?s:'('+s+')';
+  }
+  function ev(n,env){
+    if(n.t==='var')return env[n.n];
+    if(n.t==='not')return !ev(n.a,env);
+    var a=ev(n.a,env),b=ev(n.b,env);
+    switch(n.op){case 'and':return a&&b;case 'or':return a||b;case 'xor':return a!==b;case 'imp':return !a||b;case 'iff':return a===b}
+  }
+  function collect(n,vars,subs,seen){
+    if(n.t==='var'){if(vars.indexOf(n.n)<0)vars.push(n.n);return}
+    collect(n.a,vars,subs,seen);if(n.b)collect(n.b,vars,subs,seen);
+    var k=str(n,false);if(!seen[k]){seen[k]=1;subs.push(n)}
+  }
+  function show(v){var f=fmt.value;return f==='01'?(v?'1':'0'):f==='TF'?(v?'T':'F'):(v?'B':'S')}
+
+  function render(){
+    var src=input.value.trim();
+    msg.style.display='none';
+    if(!src){res.hidden=true;return}
+    try{
+      var tree=parse(tokenize(src)),vars=[],subs=[],seen={};
+      collect(tree,vars,subs,seen);
+      if(tree.t==='var'){subs=[tree]}
+      if(vars.length>8)throw new Error('Maksimal 8 variabel (lebih dari itu tabel terlalu besar).');
+      vars.sort();
+      var n=vars.length,rows=1<<n,html='<thead><tr>',trues=0,cols=subs.length;
+      vars.forEach(function(v){html+='<th class="var">'+v+'</th>'});
+      subs.forEach(function(s,i){html+='<th'+(i===cols-1?' class="fin"':'')+'>'+str(s,i===cols-1)+'</th>'});
+      html+='</tr></thead><tbody>';
+      for(var r=0;r<rows;r++){
+        var env={};
+        vars.forEach(function(v,i){env[v]=!((r>>(n-1-i))&1)});
+        html+='<tr>';
+        vars.forEach(function(v){html+='<td class="var '+(env[v]?'T':'F')+'">'+show(env[v])+'</td>'});
+        subs.forEach(function(s,i){var val=ev(s,env);if(i===cols-1&&val)trues++;
+          html+='<td class="'+(val?'T':'F')+(i===cols-1?' fin':'')+'">'+show(val)+'</td>'});
+        html+='</tr>';
+      }
+      tbl.innerHTML=html+'</tbody>';
+      var kind=trues===rows?['Tautologi','t']:trues===0?['Kontradiksi','f']:['Kontingensi',''];
+      verdict.innerHTML='<span class="badge '+kind[1]+'">'+kind[0]+'</span><span class="stat">'+trues+' dari '+rows+' baris bernilai benar · '+n+' variabel</span>';
+      res.hidden=false;
+    }catch(e){
+      msg.textContent=e.message;msg.style.display='block';res.hidden=true;
+    }
+  }
+
+  function insert(t){
+    var s=input.selectionStart==null?input.value.length:input.selectionStart,e=input.selectionEnd==null?s:input.selectionEnd;
+    input.value=input.value.slice(0,s)+t+input.value.slice(e);
+    input.focus();input.setSelectionRange(s+t.length,s+t.length);render();
+  }
+  var opsBox=document.getElementById('ops');
+  OPS.forEach(function(o){var b=document.createElement('button');b.className='op';b.textContent=o[0];b.type='button';
+    b.setAttribute('aria-label','Sisipkan '+o[0]);b.onclick=function(){insert(o[1])};opsBox.appendChild(b)});
+  var clr=document.createElement('button');clr.textContent='Hapus';clr.type='button';
+  clr.onclick=function(){input.value='';input.focus();render()};opsBox.appendChild(clr);
+  var exBox=document.getElementById('examples');
+  EXAMPLES.forEach(function(x){var b=document.createElement('button');b.className='ex';b.type='button';b.textContent=x;
+    b.onclick=function(){input.value=x;render()};exBox.appendChild(b)});
+  input.addEventListener('input',render);fmt.addEventListener('change',render);
+  render();
+})();
+</script>
+</body>
+</html>
