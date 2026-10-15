@@ -1,70 +1,113 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Simulator Tabel Kebenaran</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulator Tabel Kebenaran & Verifikator Argumen</title>
+  <meta name="description" content="Buat tabel kebenaran dan periksa validitas argumen logika proposisional.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1>Simulator Tabel Kebenaran</h1>
-  <p class="sub">Tulis ekspresi logika, lalu lihat setiap kemungkinan nilai variabelnya beserta hasil tiap langkah.</p>
+  <main class="wrap">
 
-  <section class="panel" aria-label="Input ekspresi">
-    <label class="field" for="expr">Ekspresi logika</label>
-    <div class="row">
-      <input id="expr" type="text" value="(P -> Q) & (Q -> R) -> (P -> R)" autocomplete="off" spellcheck="false" aria-describedby="hint">
-      <button id="go" type="button">Buat tabel</button>
-    </div>
-    <div class="ops" role="group" aria-label="Sisipkan operator">
-      <button type="button" data-ins="&">&amp; DAN</button>
-      <button type="button" data-ins="|">| ATAU</button>
-      <button type="button" data-ins="!">! NOT</button>
-      <button type="button" data-ins="^">^ XOR</button>
-      <button type="button" data-ins="->">-&gt; JIKA-MAKA</button>
-      <button type="button" data-ins="<->">&lt;-&gt; JIKA DAN HANYA JIKA</button>
-      <button type="button" data-ins="(">(</button>
-      <button type="button" data-ins=")">)</button>
-    </div>
-    <p class="hint" id="hint">Bisa juga ditulis AND, OR, NOT, XOR, ∧, ∨, ¬, →, ↔. Urutan prioritas: NOT, AND, XOR, OR, →, ↔. Maksimal 6 variabel.</p>
-    <div class="examples">
-      <span>Contoh:</span>
-      <button type="button" data-ex="P & Q">P &amp; Q</button>
-      <button type="button" data-ex="!(P & Q) <-> (!P | !Q)">De Morgan</button>
-      <button type="button" data-ex="P ^ Q">P ^ Q</button>
-      <button type="button" data-ex="P & !P">P &amp; !P</button>
-      <button type="button" data-ex="(P | Q) & (!P | R) -> (Q | R)">Resolusi</button>
-    </div>
-    <div class="error" id="err" role="alert" hidden></div>
-  </section>
+    <header class="masthead">
+      <h1>Simulator Tabel Kebenaran &amp; Verifikator Argumen</h1>
+      <p>Ketik rumus logika untuk melihat tabel kebenarannya, atau masukkan premis dan kesimpulan untuk memeriksa apakah argumennya valid.</p>
+      <ul class="glyphs" aria-hidden="true">
+        <li>¬</li><li>∧</li><li>∨</li><li>→</li><li>↔</li><li>⊕</li>
+      </ul>
+    </header>
 
-  <div class="controls" id="controls" hidden>
-    <div class="grp" role="group" aria-label="Format nilai">
-      <button type="button" id="fmtTF" aria-pressed="true">T / F</button>
-      <button type="button" id="fmt01" aria-pressed="false">1 / 0</button>
+    <div class="tabs" role="tablist" aria-label="Pilih alat">
+      <button class="tab" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="true">Tabel kebenaran</button>
+      <button class="tab" role="tab" id="tab-arg" aria-controls="panel-arg" aria-selected="false">Verifikator argumen</button>
     </div>
-    <div class="grp" role="group" aria-label="Saring baris">
-      <button type="button" data-filter="all" aria-pressed="true">Semua</button>
-      <button type="button" data-filter="t" aria-pressed="false">Hanya benar</button>
-      <button type="button" data-filter="f" aria-pressed="false">Hanya salah</button>
-    </div>
-    <button type="button" id="steps" aria-pressed="true">Tampilkan langkah</button>
-    <button type="button" id="theme" aria-pressed="false">Mode gelap</button>
-    <div class="verdict" id="verdict"></div>
-  </div>
 
-  <div class="tablewrap" id="tablewrap" hidden><table id="tbl"></table></div>
-  <p class="count" id="count"></p>
+    <!-- ========== PANEL 1: TABEL KEBENARAN ========== -->
+    <section class="panel" id="panel-table" role="tabpanel" aria-labelledby="tab-table">
+      <label class="field" for="formula">
+        Rumus logika
+        <span class="hint">Contoh: <code>(P ∧ Q) → R</code> atau <code>(P &amp; Q) -&gt; R</code></span>
+      </label>
+      <input type="text" id="formula" value="(P ∧ Q) → R" autocomplete="off" spellcheck="false">
 
-  <details class="pycode">
-    <summary>Versi Python (jalankan di komputer sendiri)</summary>
-    <pre>python tabel_kebenaran.py "(P -> Q) & (Q -> R) -> (P -> R)"
-python tabel_kebenaran.py            # mode interaktif</pre>
-  </details>
-</main>
+      <div class="ops" data-target="formula" aria-label="Sisipkan simbol">
+        <button type="button" class="op" data-ins="¬" title="NOT (negasi)">¬</button>
+        <button type="button" class="op" data-ins=" ∧ " title="AND (konjungsi)">∧</button>
+        <button type="button" class="op" data-ins=" ∨ " title="OR (disjungsi)">∨</button>
+        <button type="button" class="op" data-ins=" → " title="Implikasi">→</button>
+        <button type="button" class="op" data-ins=" ↔ " title="Bikondisional">↔</button>
+        <button type="button" class="op" data-ins=" ⊕ " title="XOR">⊕</button>
+        <button type="button" class="op" data-ins="(" title="Kurung buka">(</button>
+        <button type="button" class="op" data-ins=")" title="Kurung tutup">)</button>
+      </div>
 
-<script src="script.js"></script>
+      <div class="actions">
+        <button type="button" class="btn" id="btn-table">Buat tabel</button>
+        <label class="check"><input type="checkbox" id="steps-table" checked> Tampilkan langkah antara</label>
+        <label class="check"><input type="checkbox" id="bin-table"> Pakai 1 / 0</label>
+      </div>
+
+      <div class="examples">
+        Coba:
+        <button type="button" class="chip" data-formula="P → Q">P → Q</button>
+        <button type="button" class="chip" data-formula="P ∨ ¬P">P ∨ ¬P</button>
+        <button type="button" class="chip" data-formula="P ∧ ¬P">P ∧ ¬P</button>
+        <button type="button" class="chip" data-formula="¬(P ∧ Q) ↔ (¬P ∨ ¬Q)">De Morgan</button>
+        <button type="button" class="chip" data-formula="(P → Q) ∧ (Q → R)">(P → Q) ∧ (Q → R)</button>
+      </div>
+
+      <div class="result" id="result-table" aria-live="polite"></div>
+    </section>
+
+    <!-- ========== PANEL 2: VERIFIKATOR ARGUMEN ========== -->
+    <section class="panel" id="panel-arg" role="tabpanel" aria-labelledby="tab-arg" hidden>
+      <label class="field" for="premises">
+        Premis
+        <span class="hint">Satu premis per baris.</span>
+      </label>
+      <textarea id="premises" spellcheck="false">P → Q
+P</textarea>
+
+      <label class="field" for="conclusion" style="margin-top:1rem">Kesimpulan</label>
+      <input type="text" id="conclusion" value="Q" autocomplete="off" spellcheck="false">
+
+      <div class="ops" data-target="premises" aria-label="Sisipkan simbol">
+        <button type="button" class="op" data-ins="¬">¬</button>
+        <button type="button" class="op" data-ins=" ∧ ">∧</button>
+        <button type="button" class="op" data-ins=" ∨ ">∨</button>
+        <button type="button" class="op" data-ins=" → ">→</button>
+        <button type="button" class="op" data-ins=" ↔ ">↔</button>
+        <button type="button" class="op" data-ins=" ⊕ ">⊕</button>
+        <button type="button" class="op" data-ins="(">(</button>
+        <button type="button" class="op" data-ins=")">)</button>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn" id="btn-arg">Periksa argumen</button>
+        <label class="check"><input type="checkbox" id="bin-arg"> Pakai 1 / 0</label>
+      </div>
+
+      <div class="examples">
+        Contoh:
+        <button type="button" class="chip" data-prem="P → Q&#10;P" data-conc="Q">Modus ponens</button>
+        <button type="button" class="chip" data-prem="P → Q&#10;¬Q" data-conc="¬P">Modus tollens</button>
+        <button type="button" class="chip" data-prem="P → Q&#10;Q → R" data-conc="P → R">Silogisme hipotetis</button>
+        <button type="button" class="chip" data-prem="P ∨ Q&#10;¬P" data-conc="Q">Silogisme disjungtif</button>
+        <button type="button" class="chip" data-prem="P → Q&#10;Q" data-conc="P">Kekeliruan: menegaskan konsekuen</button>
+      </div>
+
+      <div class="result" id="result-arg" aria-live="polite"></div>
+    </section>
+
+    <footer class="footer">
+      Simbol yang bisa diketik: <code>¬ ! ~ NOT</code> &nbsp; <code>∧ &amp; AND</code> &nbsp; <code>∨ | OR</code> &nbsp; <code>→ -&gt;</code> &nbsp; <code>↔ &lt;-&gt;</code> &nbsp; <code>⊕ XOR</code>. Maksimal 6 variabel.
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
